@@ -1,0 +1,232 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{geometry}
+
+% Configuración de márgenes
+\geometry{
+ a4paper,
+ total={170mm,257mm},
+ left=20mm,
+ top=20mm,
+}
+
+% Definición de colores para los bloques de código
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Estilo para los listados de código
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1 {Ñ}{{\~N}}1
+}
+
+\lstset{style=mystyle}
+
+\title{Resumen Técnico: DSpace 7+}
+\author{UDO/SUCRE}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introducción}
+DSpace es el software de código abierto más utilizado a nivel mundial para la creación de repositorios institucionales y archivos digitales. Las versiones modernas (DSpace 7 y 8) representan un cambio arquitectónico significativo respecto a las versiones anteriores (4, 5, 6).
+
+\section{Arquitectura Técnica (DSpace 7+)}
+A partir de la versión 7, DSpace se dividió en una arquitectura \textbf{Headless} (Backend y Frontend separados):
+
+\subsection{Backend (DSpace-Server)}
+\begin{itemize}
+    \item Basado en \textbf{Java} y \textbf{Spring Boot}.
+    \item Expone una \textbf{REST API} completa (HAL browser compliant).
+    \item Utiliza \textbf{Hibernate} para la persistencia de datos.
+    \item Utiliza \textbf{Apache Solr} para la indexación y búsqueda.
+    \item Base de datos: Generalmente \textbf{PostgreSQL} (o Oracle).
+\end{itemize}
+
+\subsection{Frontend (DSpace-UI)}
+\begin{itemize}
+    \item Basado en \textbf{Angular} (TypeScript).
+    \item Utiliza \textbf{Node.js} para el Server-Side Rendering (SSR) para mejorar el SEO.
+    \item Se comunica exclusivamente con el backend a través de la REST API.
+\end{itemize}
+
+\section{Estructura de Datos}
+DSpace sigue una jerarquía estricta basada en el modelo Dublin Core:
+\begin{enumerate}
+    \item \textbf{Comunidades} (Communities)
+    \item \textbf{Colecciones} (Collections)
+    \item \textbf{Items} (Artículos/Tesis)
+    \item \textbf{Bitstreams} (Archivos físicos como PDFs)
+\end{enumerate}
+
+\section{Ejemplos de Código y Configuración}
+
+\subsection{Configuración Básica (local.cfg)}
+En lugar de editar el \texttt{dspace.cfg} principal, las mejores prácticas de ingeniería dictan que debes sobreescribir las configuraciones en \texttt{local.cfg}.
+
+\begin{lstlisting}[language=bash, caption=Configuración en local.cfg]
+# dspace/config/local.cfg
+
+# Configuración del directorio de instalación
+dspace.dir = /dspace
+
+# Configuración de la URL pública (Frontend Angular)
+dspace.ui.url = https://repositorio.miuniversidad.edu.co
+
+# Configuración de la REST API (Backend Java)
+dspace.server.url = https://api.repositorio.miuniversidad.edu.co/server
+
+# Conexión a Base de Datos (PostgreSQL)
+db.url = jdbc:postgresql://localhost:5432/dspace
+db.username = dspace
+db.password = mi_password_seguro
+db.schema = public
+
+# Configuración de Solr (Búsqueda)
+solr.server = http://localhost:8983/solr
+\end{lstlisting}
+
+\subsection{Desarrollo Backend (Java API)}
+Si necesitas crear una tarea curada (Curation Task) o un script personalizado para manipular ítems programáticamente, interactuarás con los servicios del Kernel de DSpace.
+
+\begin{lstlisting}[language=Java, caption=Procesamiento de Items en Java]
+package org.dspace.example;
+
+import java.sql.SQLException;
+import java.util.UUID;
+import org.dspace.content.Item;
+import org.dspace.content.service.ItemService;
+import org.dspace.core.Context;
+import org.dspace.services.factory.DSpaceServicesFactory;
+
+public class ItemProcessor {
+
+    // Obtenemos el servicio de Items a través de la factoría de servicios
+    protected ItemService itemService = DSpaceServicesFactory.getInstance().getItemService();
+
+    public void processItem(Context context, String uuidString) {
+        try {
+            // Convertir String a UUID
+            UUID uuid = UUID.fromString(uuidString);
+            
+            // Buscar el item usando el contexto actual
+            Item item = itemService.find(context, uuid);
+
+            if (item != null) {
+                // Ejemplo: Leer metadatos (Dublin Core Title)
+                String title = itemService.getMetadataFirstValue(
+                    item, "dc", "title", null, Item.ANY
+                );
+                
+                System.out.println("Procesando Item: " + title);
+                
+                // Aquí podrías añadir lógica para modificar metadatos o bitstreams
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
+\end{lstlisting}
+
+\section{Implementación de Metadatos UDO (Análisis de PDFs)}
+Basado en los documentos ``Hoja de Metadatos'' e ``Instructivo 2024'' de la Universidad de Oriente, se ha diseñado la siguiente estrategia de configuración para DSpace 7.6.
+
+\subsection{1. Mapeo de Campos (Mapping)}
+Se propone la siguiente correspondencia entre el formato UDO y el esquema Dublin Core (dc) o esquemas específicos de tesis (thesis).
+
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Campo UDO} & \textbf{Campo DSpace} & \textbf{Notas} \\
+\hline
+Título / Subtítulo & dc.title / .alternative & Estándar \\
+Autor(es) & dc.contributor.author & Incluir ORCID/Email \\
+Palabras Claves & dc.subject & \\
+Área / Línea Inv. & dc.subject.classification & O crear esquema local `udo` \\
+Resumen & dc.description.abstract & \\
+Tutor & dc.contributor.advisor & Rol `TU` en PDF \\
+Jurado & dc.contributor.committeeMember & Rol `JU` (Requiere registro) \\
+Fecha Aprobación & dc.date.issued & \\
+Alcance Espacial & dc.coverage.spatial & \\
+Alcance Temporal & dc.coverage.temporal & \\
+Grado Asociado & thesis.degree.name & Requiere esquema `thesis` \\
+Nivel Asociado & thesis.degree.level & Ej. Licenciatura, Maestría \\
+Institución & dc.publisher & Universidad de Oriente \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{2. Configuración del Formulario (input-forms.xml)}
+Ejemplo de configuración para los campos de ``Alcance'' y ``Jurado'' definidos en la página 4 del formato UDO.
+
+\begin{lstlisting}[language=xml, caption=Bloque XML para Alcance y Jurado]
+<row>
+    <!-- Campo: Alcance Espacial -->
+    <field>
+        <dc-schema>dc</dc-schema>
+        <dc-element>coverage</dc-element>
+        <dc-qualifier>spatial</dc-qualifier>
+        <repeatable>true</repeatable>
+        <label>Alcance Espacial</label>
+        <input-type>onebox</input-type>
+        <hint>Ej. Universal, Inespacial, o lugar geográfico</hint>
+        <required>Requerido</required>
+    </field>
+    <!-- Campo: Jurado (Requiere haber registrado 'committeeMember' previamente) -->
+    <field>
+        <dc-schema>dc</dc-schema>
+        <dc-element>contributor</dc-element>
+        <dc-qualifier>committeeMember</dc-qualifier>
+        <repeatable>true</repeatable>
+        <label>Jurado</label>
+        <input-type>name</input-type>
+        <hint>Apellidos y Nombres del Jurado</hint>
+        <required></required>
+    </field>
+</row>
+\end{lstlisting}
+
+\textbf{Despliegue en Docker:}
+Al modificar archivos XML de configuración (\texttt{submission-forms.xml}, \texttt{input-forms.xml}), es necesario reiniciar el contenedor del backend para recargar los cambios:
+\begin{lstlisting}[language=bash]
+docker compose restart dspace-server
+\end{lstlisting}
+
+\section{Áreas de Asistencia}
+Puedo asistirte en áreas como:
+\begin{itemize}
+    \item \textbf{Instalación:} Despliegue con Docker o instalación manual (Maven/Ant).
+    \item \textbf{Personalización:} Modificar el tema de Angular o crear nuevos componentes.
+    \item \textbf{REST API:} Cómo consumir la API para integraciones externas.
+    \item \textbf{Migración:} Pasar de DSpace 6 (XMLUI/JSPUI) a DSpace 7/8.
+    \item \textbf{OAI-PMH:} Configuración para la recolección de metadatos.
+\end{itemize}
+
+\end{document}
