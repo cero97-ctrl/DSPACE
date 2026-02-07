@@ -43,8 +43,8 @@
 
 \lstset{style=mystyle}
 
-\title{Resumen Técnico: DSpace 7+}
-\author{UDO/SUCRE}
+\title{Manual Técnico y Guía de Instalación: DSpace 7+}
+\author{Prof. César Rodríguez - UDO/SUCRE}
 \date{\today}
 
 \begin{document}
@@ -84,6 +84,109 @@ DSpace sigue una jerarquía estricta basada en el modelo Dublin Core:
     \item \textbf{Items} (Artículos/Tesis)
     \item \textbf{Bitstreams} (Archivos físicos como PDFs)
 \end{enumerate}
+
+\section{Guía de Instalación con Docker}
+Esta sección describe el procedimiento para desplegar DSpace 7 utilizando contenedores Docker. Este método simplifica drásticamente la gestión de dependencias (Java, Maven, PostgreSQL, Solr) ya que todo se ejecuta dentro de contenedores aislados y preconfigurados.
+
+\subsection{Prerrequisitos}
+\begin{itemize}
+    \item \textbf{Docker Engine} (v19.03 o superior).
+    \item \textbf{Docker Compose} (v1.25 o superior).
+    \item \textbf{Git}.
+    \item Al menos 4GB de RAM dedicados a Docker (recomendado 8GB).
+\end{itemize}
+
+\subsection{Instalación y Despliegue}
+
+\subsubsection{1. Descarga del Código Fuente}
+Clonamos el repositorio principal de DSpace. Este repositorio incluye los archivos \texttt{docker-compose.yml} necesarios para levantar todo el stack (Backend, Frontend, BD y Solr).
+\begin{lstlisting}[language=bash]
+mkdir /dspace-docker
+cd /dspace-docker
+git clone https://github.com/DSpace/DSpace.git -b dspace-7.6
+cd DSpace
+\end{lstlisting}
+
+\subsubsection{2. Despliegue de Contenedores}
+Utilizamos Docker Compose para descargar las imágenes oficiales y levantar los servicios.
+\begin{lstlisting}[language=bash]
+# Descargar las imágenes más recientes
+docker compose pull
+
+# Levantar los servicios en segundo plano (detached mode)
+docker compose -p dspace up -d
+\end{lstlisting}
+
+Esto iniciará los siguientes servicios automáticamente:
+\begin{itemize}
+    \item \textbf{dspace-angular}: Frontend (Puerto 4000).
+    \item \textbf{dspace-server}: Backend API (Puerto 8080).
+    \item \textbf{dspace-db}: Base de datos PostgreSQL.
+    \item \textbf{dspace-solr}: Motor de búsqueda Solr.
+\end{itemize}
+
+\subsubsection{3. Inicialización de la Base de Datos}
+Una vez que los contenedores estén corriendo, es necesario ejecutar las migraciones iniciales para crear el esquema de la base de datos.
+\begin{lstlisting}[language=bash]
+# Ejecutar migración de base de datos dentro del contenedor
+docker compose -p dspace exec dspace-server dspace database migrate
+\end{lstlisting}
+
+\subsubsection{4. Creación del Administrador}
+Para acceder al sistema y gestionar contenidos, creamos una cuenta de administrador (e-person).
+\begin{lstlisting}[language=bash]
+docker compose -p dspace exec dspace-server dspace create-administrator
+\end{lstlisting}
+Siga las instrucciones en pantalla para ingresar email, nombre, apellido y contraseña.
+
+\subsection{Verificación}
+Acceda a las siguientes URLs desde su navegador:
+\begin{itemize}
+    \item \textbf{Frontend (UI):} \url{http://localhost:4000}
+    \item \textbf{Backend (API):} \url{http://localhost:8080/server}
+    \item \textbf{HAL Browser:} \url{http://localhost:8080/server/api}
+\end{itemize}
+
+\subsection{Comandos Útiles}
+
+\subsubsection{Ver logs}
+\begin{lstlisting}[language=bash]
+# Ver logs del backend en tiempo real
+docker compose -p dspace logs -f dspace-server
+
+# Ver logs del frontend
+docker compose -p dspace logs -f dspace-angular
+\end{lstlisting}
+
+\subsubsection{Detener el sistema}
+\begin{lstlisting}[language=bash]
+docker compose -p dspace down
+\end{lstlisting}
+
+\subsection{Puesta en Producción (IP Pública)}
+Cuando disponga de la IP pública asignada por Teleinformática, deberá actualizar la configuración para permitir el acceso externo.
+
+\subsubsection{Ajustes Básicos}
+\begin{itemize}
+    \item \textbf{Backend:} Actualizar \texttt{dspace.server.url} y \texttt{dspace.ui.url} en \texttt{local.cfg}.
+    \item \textbf{Frontend:} Configurar el cliente Angular para que apunte a la IP pública de la API (usualmente mediante variables de entorno \texttt{DSPACE\_REST\_HOST} en Docker).
+\end{itemize}
+
+\subsubsection{Proxy Reverso (Recomendado)}
+Para un entorno de producción seguro, no exponga los puertos 8080/4000 directamente. Configure \textbf{Nginx} o \textbf{Apache} como proxy reverso en el servidor host para:
+\begin{enumerate}
+    \item Recibir tráfico en puertos estándar (80/443).
+    \item Gestionar certificados SSL (HTTPS).
+    \item Redirigir internamente a los contenedores Docker.
+\end{enumerate}
+
+\subsection{Resumen de la Instalación}
+Al completar estos pasos, usted tendrá efectivamente \textbf{DSpace 7.6} ejecutándose en su PC GNU/Linux bajo la siguiente arquitectura:
+\begin{itemize}
+    \item \textbf{Contenerización Total:} Backend, Frontend, Base de Datos y Solr corren aislados en Docker.
+    \item \textbf{Persistencia:} Los datos se guardan en volúmenes de Docker, no se pierden al apagar el contenedor.
+    \item \textbf{Versión:} Se garantiza la versión 7.6 al haber seleccionado la rama específica en el paso de clonación.
+\end{itemize}
 
 \section{Ejemplos de Código y Configuración}
 
@@ -213,7 +316,7 @@ Ejemplo de configuración para los campos de ``Alcance'' y ``Jurado'' definidos 
 </row>
 \end{lstlisting}
 
-\textbf{Despliegue en Docker:}
+\textbf{Nota sobre Despliegue:}
 Al modificar archivos XML de configuración (\texttt{submission-forms.xml}, \texttt{input-forms.xml}), es necesario reiniciar el contenedor del backend para recargar los cambios:
 \begin{lstlisting}[language=bash]
 docker compose restart dspace-server
