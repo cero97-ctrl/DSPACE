@@ -1,0 +1,13 @@
+\babel@toc {spanish}{}\relax 
+\contentsline {section}{\numberline {1}Introducción}{2}{section.1}%
+\contentsline {section}{\numberline {2}Prerrequisitos}{2}{section.2}%
+\contentsline {section}{\numberline {3}Instalación y Despliegue}{2}{section.3}%
+\contentsline {subsection}{\numberline {3.1}1. Descarga del Código Fuente}{2}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}2. Despliegue de Contenedores}{2}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}3. Inicialización de la Base de Datos}{2}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}4. Creación del Administrador}{2}{subsection.3.4}%
+\contentsline {section}{\numberline {4}Verificación}{3}{section.4}%
+\contentsline {section}{\numberline {5}Comandos Útiles}{3}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Ver logs}{3}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Detener el sistema}{3}{subsection.5.2}%
+\contentsline {section}{\numberline {6}Resumen de la Instalación}{3}{section.6}%

@@ -1,0 +1,143 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{geometry}
+
+% Configuración de márgenes
+\geometry{
+ a4paper,
+ total={170mm,257mm},
+ left=20mm,
+ top=20mm,
+}
+
+% Definición de colores para los bloques de código
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Estilo para los listados de código
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1 {Ñ}{{\~N}}1
+}
+
+\lstset{style=mystyle}
+
+\title{Guía de Instalación de DSpace 7 con Docker}
+\author{Prof. César Rodríguez}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introducción}
+Esta guía describe el procedimiento para desplegar DSpace 7 utilizando contenedores Docker. Este método simplifica drásticamente la gestión de dependencias (Java, Maven, PostgreSQL, Solr) ya que todo se ejecuta dentro de contenedores aislados y preconfigurados.
+
+\section{Prerrequisitos}
+\begin{itemize}
+    \item \textbf{Docker Engine} (v19.03 o superior).
+    \item \textbf{Docker Compose} (v1.25 o superior).
+    \item \textbf{Git}.
+    \item Al menos 4GB de RAM dedicados a Docker (recomendado 8GB).
+\end{itemize}
+
+\section{Instalación y Despliegue}
+
+\subsection{1. Descarga del Código Fuente}
+Clonamos el repositorio principal de DSpace. Este repositorio incluye los archivos \texttt{docker-compose.yml} necesarios para levantar todo el stack (Backend, Frontend, BD y Solr).
+\begin{lstlisting}[language=bash]
+mkdir /dspace-docker
+cd /dspace-docker
+git clone https://github.com/DSpace/DSpace.git -b dspace-7.6
+cd DSpace
+\end{lstlisting}
+
+\subsection{2. Despliegue de Contenedores}
+Utilizamos Docker Compose para descargar las imágenes oficiales y levantar los servicios.
+\begin{lstlisting}[language=bash]
+# Descargar las imágenes más recientes
+docker compose pull
+
+# Levantar los servicios en segundo plano (detached mode)
+docker compose -p dspace up -d
+\end{lstlisting}
+
+Esto iniciará los siguientes servicios automáticamente:
+\begin{itemize}
+    \item \textbf{dspace-angular}: Frontend (Puerto 4000).
+    \item \textbf{dspace-server}: Backend API (Puerto 8080).
+    \item \textbf{dspace-db}: Base de datos PostgreSQL.
+    \item \textbf{dspace-solr}: Motor de búsqueda Solr.
+\end{itemize}
+
+\subsection{3. Inicialización de la Base de Datos}
+Una vez que los contenedores estén corriendo, es necesario ejecutar las migraciones iniciales para crear el esquema de la base de datos.
+\begin{lstlisting}[language=bash]
+# Ejecutar migración de base de datos dentro del contenedor
+docker compose -p dspace exec dspace-server dspace database migrate
+\end{lstlisting}
+
+\subsection{4. Creación del Administrador}
+Para acceder al sistema y gestionar contenidos, creamos una cuenta de administrador (e-person).
+\begin{lstlisting}[language=bash]
+docker compose -p dspace exec dspace-server dspace create-administrator
+\end{lstlisting}
+Siga las instrucciones en pantalla para ingresar email, nombre, apellido y contraseña.
+
+\section{Verificación}
+Acceda a las siguientes URLs desde su navegador:
+\begin{itemize}
+    \item \textbf{Frontend (UI):} \url{http://localhost:4000}
+    \item \textbf{Backend (API):} \url{http://localhost:8080/server}
+    \item \textbf{HAL Browser:} \url{http://localhost:8080/server/api}
+\end{itemize}
+
+\section{Comandos Útiles}
+
+\subsection{Ver logs}
+\begin{lstlisting}[language=bash]
+# Ver logs del backend en tiempo real
+docker compose -p dspace logs -f dspace-server
+
+# Ver logs del frontend
+docker compose -p dspace logs -f dspace-angular
+\end{lstlisting}
+
+\subsection{Detener el sistema}
+\begin{lstlisting}[language=bash]
+docker compose -p dspace down
+\end{lstlisting}
+
+\section{Resumen de la Instalación}
+Al completar estos pasos, usted tendrá efectivamente \textbf{DSpace 7.6} ejecutándose en su PC GNU/Linux bajo la siguiente arquitectura:
+\begin{itemize}
+    \item \textbf{Contenerización Total:} Backend, Frontend, Base de Datos y Solr corren aislados en Docker.
+    \item \textbf{Persistencia:} Los datos se guardan en volúmenes de Docker, no se pierden al apagar el contenedor.
+    \item \textbf{Versión:} Se garantiza la versión 7.6 al haber seleccionado la rama específica en el paso de clonación.
+\end{itemize}
+
+\end{document}
