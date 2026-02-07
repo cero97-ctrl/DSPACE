@@ -1,0 +1,1 @@
+Esta guía técnica detalla la instalación de **DSpace 7+** usando **Docker**. Explica su arquitectura **Headless** (Backend en Java y Frontend en Angular), el modelo de datos **Dublin Core** y la configuración de **metadatos** específicos para la **UDO**, incluyendo mapeo y formularios XML.
