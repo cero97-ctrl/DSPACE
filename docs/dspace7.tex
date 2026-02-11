@@ -322,8 +322,24 @@ Al modificar archivos XML de configuración (\texttt{submission-forms.xml}, \tex
 docker compose restart dspace-server
 \end{lstlisting}
 
+\section{Solución de Problemas Comunes}
+
+\subsection{Cambios en input-forms.xml no visibles}
+Si ha modificado el archivo de formularios pero la interfaz web sigue mostrando la versión anterior, verifique lo siguiente:
+
+\begin{enumerate}
+    \item \textbf{Reinicio del Backend:} DSpace carga la configuración XML en memoria al inicio. Es obligatorio reiniciar el servicio para aplicar cambios:
+    \begin{lstlisting}[language=bash]
+docker compose -p dspace restart dspace-server
+    \end{lstlisting}
+    \item \textbf{Nombre del Archivo:} Asegúrese de que el archivo se llame exactamente \texttt{input-forms.xml}. Errores tipográficos (ej. \texttt{unput-forms.xml}) harán que el sistema ignore el archivo.
+    \item \textbf{Sintaxis XML:} Un error de sintaxis puede provocar que DSpace descarte el archivo y use la configuración por defecto. Verifique los logs:
+    \begin{lstlisting}[language=bash]
+docker compose -p dspace logs -f dspace-server
+    \end{lstlisting}
+\end{enumerate}
+
 \section{Áreas de Asistencia}
-Puedo asistirte en áreas como:
 \begin{itemize}
     \item \textbf{Instalación:} Despliegue con Docker o instalación manual (Maven/Ant).
     \item \textbf{Personalización:} Modificar el tema de Angular o crear nuevos componentes.
